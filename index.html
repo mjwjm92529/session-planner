@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soccer Practice Planner Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4ff',
+                            100: '#e0e9fe',
+                            200: '#c3d5fe',
+                            500: '#3b62f6',
+                            600: '#1e439b', // Primary requested blue
+                            700: '#17337a',
+                            800: '#13285c',
+                            900: '#101f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+        }
+        .print-only {
+            display: none;
+        }
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-full flex flex-col font-sans selection:bg-brand-600 selection:text-white">
+
+    <!-- Toast Notification Banner -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-brand-600 text-white shadow-md no-print sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-brand-600 p-2.5 rounded-xl font-bold flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-futbol text-xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight">PitchPlanner <span class="text-blue-200 font-extrabold">Pro</span></h1>
+                    <p class="text-xs text-blue-100">Professional Soccer Practice Session Generator</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="openDrillEditorModal()" class="bg-brand-700 hover:bg-brand-800 text-white border border-brand-500/40 px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-plus text-blue-200"></i>
+                    <span class="hidden sm:inline">Add Custom Drill</span>
+                </button>
+                <button onclick="openSessionSettingsModal()" class="bg-brand-700 hover:bg-brand-800 text-white border border-brand-500/40 px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-gear text-blue-200"></i>
+                    <span class="hidden sm:inline">Session Details</span>
+                </button>
+                <button onclick="printSessionPlan()" class="bg-white hover:bg-slate-100 text-brand-700 px-4 py-2 rounded-lg text-sm font-bold shadow-md transition flex items-center space-x-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Export / Print PDF</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+        
+        <!-- LEFT COLUMN: Drill Library (7 cols on lg) -->
+        <section class="lg:col-span-7 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden no-print h-[calc(100vh-7.5rem)]">
+            <!-- Library Header & Filters -->
+            <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-layer-group text-brand-600"></i>
+                        <h2 class="font-bold text-slate-800 text-base">Drill Library</h2>
+                        <span id="drill-count-badge" class="bg-brand-50 text-brand-700 border border-brand-200 text-xs font-semibold px-2.5 py-0.5 rounded-full">0 drills</span>
+                    </div>
+                    <div class="text-xs text-slate-500 hidden sm:block">Click "+ Add" to include in plan</div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="space-y-3">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </span>
+                        <input type="text" id="search-input" oninput="filterDrills()" placeholder="Search drills by name, keyword, equipment..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Category Filter -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                            <select id="filter-category" onchange="filterDrills()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                                <option value="all">All Categories</option>
+                                <option value="warmup">Warmup</option>
+                                <option value="passing">Passing</option>
+                                <option value="dribbling">Dribbling</option>
+                                <option value="shooting">Shooting</option>
+                                <option value="possession">Possession</option>
+                                <option value="defending">Defending</option>
+                                <option value="fitness">Fitness</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Player Count Filter -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Players (<span id="player-slider-val">All</span>)</label>
+                            <input type="range" id="filter-players" min="0" max="25" value="0" oninput="updatePlayerSliderLabel(); filterDrills();" class="w-full accent-brand-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer mt-2">
+                        </div>
+
+                        <!-- Equipment Filter -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Equipment</label>
+                            <select id="filter-equipment" onchange="filterDrills()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                                <option value="all">Any Equipment</option>
+                                <option value="Cones">Cones</option>
+                                <option value="Balls">Balls</option>
+                                <option value="Pennies">Pennies / Bibs</option>
+                                <option value="Goals">Goals / Puggys</option>
+                                <option value="Hurdles">Hurdles</option>
+                                <option value="Poles">Agility Poles</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drill List Container -->
+            <div id="drill-library-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Dynamically populated drill cards -->
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Session Builder & Summary (5 cols on lg) -->
+        <section class="lg:col-span-5 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-7.5rem)] no-print">
+            <!-- Session Builder Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-clipboard-list text-brand-600"></i>
+                    <h2 class="font-bold text-slate-800 text-base">Practice Session</h2>
+                    <span id="session-drill-count" class="bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">0 drills</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-2.5 py-1 rounded-lg border border-brand-200"><i class="fa-regular fa-clock mr-1"></i><span id="total-session-time">0</span> mins</span>
+                    <button onclick="clearSession()" title="Clear Session" class="text-slate-400 hover:text-red-500 p-1.5 rounded-lg transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                </div>
+            </div>
+
+            <!-- Tabs inside Session Builder: Timeline vs Equipment Checklist -->
+            <div class="flex border-b border-slate-200 text-xs font-medium bg-white">
+                <button onclick="switchBuilderTab('timeline')" id="tab-btn-timeline" class="flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-600 font-semibold transition">Timeline & Drills</button>
+                <button onclick="switchBuilderTab('equipment')" id="tab-btn-equipment" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">Equipment Checklist</button>
+            </div>
+
+            <!-- Tab Content: Timeline -->
+            <div id="tab-content-timeline" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div id="session-drills-list" class="space-y-3">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Tab Content: Equipment Checklist -->
+            <div id="tab-content-equipment" class="flex-1 overflow-y-auto p-4 space-y-3 hidden">
+                <div class="bg-brand-50/50 border border-brand-200 rounded-xl p-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-brand-800 mb-3 flex items-center">
+                        <i class="fa-solid fa-box-archive mr-2 text-brand-600"></i> Consolidated Equipment Needed
+                    </h3>
+                    <ul id="equipment-checklist-items" class="space-y-2 text-sm text-slate-700">
+                        <!-- Populated dynamically -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Session Footer Action -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 block">Theme / Age Group:</span>
+                    <span id="footer-session-meta" class="text-xs font-semibold text-slate-700">U14 Tactical Development</span>
+                </div>
+                <button onclick="printSessionPlan()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow transition flex items-center space-x-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Plan</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PRINT VIEW (Visible only during printing) -->
+    <div id="print-area" class="print-only max-w-4xl mx-auto p-8 bg-white text-slate-900">
+        <div class="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-end">
+            <div>
+                <h1 id="print-title" class="text-3xl font-extrabold tracking-tight text-slate-900">U14 Tactical Practice Session</h1>
+                <p class="text-sm text-slate-600 mt-1">Coach: <span id="print-coach">Coach Alex</span> | Date: <span id="print-date">2026-06-06</span></p>
+            </div>
+            <div class="text-right">
+                <div class="text-lg font-bold text-brand-700"><span id="print-total-time">90</span> mins total</div>
+                <div class="text-xs text-slate-500">PitchPlanner Pro Session Plan</div>
+            </div>
+        </div>
+
+        <div class="mb-6 bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Equipment Checklist</h3>
+            <ul id="print-equipment-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-700">
+                <!-- Populated for print -->
+            </ul>
+        </div>
+
+        <div class="space-y-6" id="print-drills-container">
+            <!-- Populated for print -->
+        </div>
+    </div>
+
+    <!-- DRILL DETAILS / PREVIEW MODAL -->
+    <div id="drill-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-100 transform transition-all">
+            <div id="modal-header" class="p-5 bg-brand-600 text-white flex items-center justify-between">
+                <div>
+                    <span id="modal-category" class="bg-white text-brand-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">Passing</span>
+                    <h3 id="modal-title" class="text-lg font-bold mt-1">Passing Triangle Drill</h3>
+                </div>
+                <button onclick="closeDrillModal()" class="text-blue-100 hover:text-white p-2 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div><i class="fa-solid fa-users text-brand-600 mr-1"></i> <span id="modal-players">6-12</span> Players</div>
+                    <div><i class="fa-regular fa-clock text-brand-600 mr-1"></i> <span id="modal-duration">15</span> mins</div>
+                    <div><i class="fa-solid fa-box text-brand-600 mr-1"></i> <span id="modal-equipment">Cones, Balls</span></div>
+                </div>
+
+                <!-- Video Container Embed -->
+                <div id="modal-video-container" class="hidden rounded-xl overflow-hidden bg-slate-900 aspect-video relative shadow">
+                    <!-- Dynamic iFrame or Link Button -->
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Description</h4>
+                    <p id="modal-description" class="text-sm text-slate-700 leading-relaxed">Detailed drill description goes here...</p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coaching Points</h4>
+                    <ul id="modal-coaching-points" class="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                        <!-- Points -->
+                    </ul>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                <button id="modal-edit-btn" onclick="" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Edit Drill</span>
+                </button>
+                <button onclick="closeDrillModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SESSION SETTINGS MODAL -->
+    <div id="session-settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-5 bg-brand-600 text-white flex items-center justify-between">
+                <h3 class="text-lg font-bold">Session Settings</h3>
+                <button onclick="closeSessionSettingsModal()" class="text-blue-100 hover:text-white p-2 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Session Title</label>
+                    <input type="text" id="setting-title" value="U14 Tactical Practice Session" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coach Name</label>
+                    <input type="text" id="setting-coach" value="Coach Alex" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Session Date</label>
+                    <input type="date" id="setting-date" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-2">
+                <button onclick="closeSessionSettingsModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition">Cancel</button>
+                <button onclick="saveSessionSettings()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT DRILL MODAL -->
+    <div id="drill-editor-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-5 bg-brand-600 text-white flex items-center justify-between">
+                <h3 id="editor-modal-title" class="text-lg font-bold">Add Custom Drill</h3>
+                <button onclick="closeDrillEditorModal()" class="text-blue-100 hover:text-white p-2 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="drill-editor-form" onsubmit="handleDrillFormSubmit(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <input type="hidden" id="editor-drill-id" value="">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Drill Name</label>
+                    <input type="text" id="editor-name" required placeholder="e.g. 4v2 Rondo" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Category</label>
+                        <select id="editor-category" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                            <option value="warmup">Warmup</option>
+                            <option value="passing">Passing</option>
+                            <option value="dribbling">Dribbling</option>
+                            <option value="shooting">Shooting</option>
+                            <option value="possession" selected>Possession</option>
+                            <option value="defending">Defending</option>
+                            <option value="fitness">Fitness</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Default Duration (mins)</label>
+                        <input type="number" id="editor-duration" min="1" max="60" value="15" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Min Players</label>
+                        <input type="number" id="editor-min-players" min="1" max="30" value="4" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Max Players</label>
+                        <input type="number" id="editor-max-players" min="1" max="30" value="12" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1"><i class="fa-solid fa-video text-brand-600 mr-1"></i> Video Link (YouTube, Vimeo, Facebook, or URL)</label>
+                    <input type="url" id="editor-video-url" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Equipment (comma separated)</label>
+                    <input type="text" id="editor-equipment" placeholder="Cones, Balls, Pennies" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Description</label>
+                    <textarea id="editor-description" rows="3" required placeholder="Explain how the drill is set up and executed..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coaching Points (one per line)</label>
+                    <textarea id="editor-points" rows="2" placeholder="Quick pass speed&#10;Body shape open" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none"></textarea>
+                </div>
+                <div class="pt-2 flex justify-between items-center">
+                    <button type="button" id="editor-delete-btn" onclick="handleDeleteDrill()" class="hidden bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2 rounded-xl text-sm font-semibold transition border border-red-200">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Delete Drill
+                    </button>
+                    <div class="flex space-x-2 ml-auto">
+                        <button type="button" onclick="closeDrillEditorModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition">Cancel</button>
+                        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">Save Drill</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script>
+        // Default Drill Library Data with Video Embed Links
+        const defaultDrills = [
+            {
+                id: 'drill-1',
+                name: 'Dynamic Warmup & Mobility',
+                category: 'warmup',
+                minPlayers: 6,
+                maxPlayers: 25,
+                duration: 10,
+                equipment: ['Cones'],
+                videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                description: 'Dynamic stretching, high knees, open/close the gate, shuffle, and progressive accelerations between cones set 15 yards apart.',
+                coachingPoints: ['Focus on proper posture and posture alignment', 'Gradually increase intensity from 50% to 90%', 'Active arm swing and core engagement']
+            },
+            {
+                id: 'drill-2',
+                name: 'Passing Triangle Combination',
+                category: 'passing',
+                minPlayers: 6,
+                maxPlayers: 12,
+                duration: 15,
+                equipment: ['Cones', 'Balls'],
+                videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                description: 'Players form a triangle (12x12 yards). Pass and follow your pass to the next cone. Introduce 1-touch passing and third-man runs.',
+                coachingPoints: ['Open body shape when receiving', 'Firm pass into the back foot', 'Communication (verbal and visual)']
+            },
+            {
+                id: 'drill-3',
+                name: '1v1 Attacking & Defending',
+                category: 'defending',
+                minPlayers: 6,
+                maxPlayers: 20,
+                duration: 15,
+                equipment: ['Cones', 'Balls', 'Goals', 'Pennies'],
+                videoUrl: '',
+                description: 'Attacker receives ball from coach and attacks 1v1 against defender trying to score in mini goals.',
+                coachingPoints: ['Defender close down quickly and slow down on approach', 'Attacker use change of pace and skill moves', 'Low center of gravity for defender']
+            },
+            {
+                id: 'drill-4',
+                name: '4v2 Possession Rondo',
+                category: 'possession',
+                minPlayers: 6,
+                maxPlayers: 10,
+                duration: 15,
+                equipment: ['Cones', 'Balls', 'Pennies'],
+                videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                description: '4 attacking players on the outside of a 8x8 grid keep possession against 2 defenders inside. 2-touch max.',
+                coachingPoints: ['Support angles and creating passing lanes', 'Quick decision making under pressure', 'Transition speed when ball is won']
+            },
+            {
+                id: 'drill-5',
+                name: 'Shooting from Edge of Box',
+                category: 'shooting',
+                minPlayers: 6,
+                maxPlayers: 16,
+                duration: 15,
+                equipment: ['Cones', 'Balls', 'Goals'],
+                videoUrl: '',
+                description: 'Receive a square pass from the flank and strike first-time or take a touch and shoot on goal.',
+                coachingPoints: ['Plant non-shooting foot pointing at target', 'Strike through the center of the ball (laces)', 'Keep knee over the ball to keep shot low']
+            },
+            {
+                id: 'drill-6',
+                name: 'Agility & Ball Mastery Circuit',
+                category: 'dribbling',
+                minPlayers: 6,
+                maxPlayers: 25,
+                duration: 12,
+                equipment: ['Cones', 'Balls', 'Hurdles'],
+                videoUrl: '',
+                description: 'Players dribble through slalom cones, perform toe-taps and roll-overs, jump small hurdles, and sprint 10 yards.',
+                coachingPoints: ['Close ball control using both feet', 'Head up scanning outside the ball', 'Quick footwork through obstacles']
+            },
+            {
+                id: 'drill-7',
+                name: 'High Intensity Interval Fitness',
+                category: 'fitness',
+                minPlayers: 6,
+                maxPlayers: 30,
+                duration: 10,
+                equipment: ['Cones'],
+                videoUrl: '',
+                description: 'Box-to-box shuttle runs: 30 seconds sprint, 30 seconds walk recovery for 5 rounds.',
+                coachingPoints: ['Maintain pacing throughout intervals', 'Proper breathing technique', 'Recovery posture (hands on knees, deep breaths)']
+            },
+            {
+                id: 'drill-8',
+                name: 'Small Sided Game 5v5',
+                category: 'other',
+                minPlayers: 10,
+                maxPlayers: 20,
+                duration: 20,
+                equipment: ['Cones', 'Balls', 'Goals', 'Pennies'],
+                videoUrl: '',
+                description: 'Conditioned small-sided scrimmage applying all tactical concepts learned during the practice session.',
+                coachingPoints: ['Encourage switching play', 'Compact team shape in attack and defense', 'High energy and positive communication']
+            }
+        ];
+
+        // Application State
+        let state = {
+            drills: [...defaultDrills],
+            session: [],
+            sessionMeta: {
+                title: 'U14 Tactical Practice Session',
+                coach: 'Coach Alex',
+                date: new Date().toISOString().split('T')[0]
+            },
+            activeTab: 'timeline'
+        };
+
+        // Initialize App on Load
+        window.onload = function() {
+            loadFromLocalStorage();
+            document.getElementById('setting-date').value = state.sessionMeta.date;
+            document.getElementById('setting-title').value = state.sessionMeta.title;
+            document.getElementById('setting-coach').value = state.sessionMeta.coach;
+            renderLibrary();
+            renderSession();
+        };
+
+        // LocalStorage Persistence
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('pitchplanner_all_drills', JSON.stringify(state.drills));
+            } catch (e) {
+                console.error('Could not save to localStorage', e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('pitchplanner_all_drills');
+                if (saved) {
+                    state.drills = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Could not load from localStorage', e);
+            }
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center space-x-2 px-4 py-3 rounded-xl text-white text-sm shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 ${
+                type === 'success' ? 'bg-brand-800 border border-brand-500/30' : 'bg-red-600'
+            }`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-blue-300' : 'fa-circle-exclamation'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Category Badge Colors
+        function getCategoryColor(cat) {
+            switch(cat) {
+                case 'warmup': return 'bg-amber-100 text-amber-800 border-amber-200';
+                case 'passing': return 'bg-brand-50 text-brand-700 border-brand-200';
+                case 'dribbling': return 'bg-purple-100 text-purple-800 border-purple-200';
+                case 'shooting': return 'bg-rose-100 text-rose-800 border-rose-200';
+                case 'possession': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                case 'defending': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+                case 'fitness': return 'bg-orange-100 text-orange-800 border-orange-200';
+                default: return 'bg-slate-100 text-slate-800 border-slate-200';
+            }
+        }
+
+        // Video URL Helper: Convert links into iframe embed sources or fallback URLs
+        function parseVideoEmbedUrl(url) {
+            if (!url) return null;
+            try {
+                if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    let videoId = '';
+                    if (url.includes('youtu.be/')) {
+                        videoId = url.split('youtu.be/')[1].split('?')[0];
+                    } else if (url.includes('watch?v=')) {
+                        videoId = url.split('watch?v=')[1].split('&')[0];
+                    } else if (url.includes('embed/')) {
+                        videoId = url.split('embed/')[1].split('?')[0];
+                    }
+                    if (videoId) return { type: 'iframe', src: `https://www.youtube.com/embed/${videoId}` };
+                }
+                if (url.includes('vimeo.com')) {
+                    const videoId = url.split('vimeo.com/')[1].split('?')[0];
+                    if (videoId) return { type: 'iframe', src: `https://player.vimeo.com/video/${videoId}` };
+                }
+                return { type: 'link', url: url };
+            } catch(e) {
+                return { type: 'link', url: url };
+            }
+        }
+
+        // Filter Player Slider Label
+        function updatePlayerSliderLabel() {
+            const val = document.getElementById('filter-players').value;
+            document.getElementById('player-slider-val').innerText = val == 0 ? 'All' : val + '+';
+        }
+
+        // Filter Library Drills
+        function filterDrills() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const category = document.getElementById('filter-category').value;
+            const minPlayersReq = parseInt(document.getElementById('filter-players').value) || 0;
+            const equipmentReq = document.getElementById('filter-equipment').value;
+
+            const filtered = state.drills.filter(drill => {
+                const matchesSearch = drill.name.toLowerCase().includes(query) || 
+                                      drill.description.toLowerCase().includes(query) ||
+                                      drill.equipment.some(e => e.toLowerCase().includes(query));
+                const matchesCat = category === 'all' || drill.category === category;
+                const matchesPlayers = minPlayersReq === 0 || (drill.minPlayers <= minPlayersReq && drill.maxPlayers >= minPlayersReq);
+                const matchesEquip = equipmentReq === 'all' || drill.equipment.includes(equipmentReq);
+
+                return matchesSearch && matchesCat && matchesPlayers && matchesEquip;
+            });
+
+            renderDrillList(filtered);
+        }
+
+        // Render Drill Library
+        function renderLibrary() {
+            filterDrills();
+        }
+
+        function renderDrillList(drillsToRender) {
+            const container = document.getElementById('drill-library-list');
+            document.getElementById('drill-count-badge').innerText = `${drillsToRender.length} drills`;
+
+            if (drillsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 space-y-2">
+                        <i class="fa-solid fa-folder-open text-3xl"></i>
+                        <p class="text-sm">No drills found matching your filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = drillsToRender.map(drill => `
+                <div class="bg-white border border-slate-200 hover:border-brand-500 rounded-xl p-4 transition-all shadow-sm hover:shadow-md flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${getCategoryColor(drill.category)}">
+                                ${drill.category}
+                            </span>
+                            <div class="flex items-center space-x-2 text-xs text-slate-500">
+                                ${drill.videoUrl ? `<span class="text-red-500" title="Has Video"><i class="fa-solid fa-circle-play text-sm"></i></span>` : ''}
+                                <span><i class="fa-solid fa-users text-slate-400 mr-1"></i>${drill.minPlayers}-${drill.maxPlayers}</span>
+                                <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${drill.duration}m</span>
+                            </div>
+                        </div>
+                        <h3 onclick="openDrillModal('${drill.id}')" class="font-bold text-slate-800 text-sm group-hover:text-brand-600 cursor-pointer transition">${drill.name}</h3>
+                        <p class="text-xs text-slate-600 mt-1 line-clamp-2">${drill.description}</p>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div class="flex flex-wrap gap-1">
+                            ${drill.equipment.map(e => `<span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${e}</span>`).join('')}
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="openDrillEditorModal('${drill.id}')" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition" title="Edit Drill">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <button onclick="openDrillModal('${drill.id}')" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition" title="View Details">
+                                <i class="fa-solid fa-circle-info text-xs"></i>
+                            </button>
+                            <button onclick="addDrillToSession('${drill.id}')" class="bg-brand-50 hover:bg-brand-600 hover:text-white text-brand-700 p-1.5 px-3 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add Drill to Session
+        function addDrillToSession(drillId) {
+            const drill = state.drills.find(d => d.id === drillId);
+            if (!drill) return;
+
+            // Clone drill with unique session instance ID
+            const sessionDrill = {
+                ...drill,
+                instanceId: 'inst-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+                customDuration: drill.duration
+            };
+
+            state.session.push(sessionDrill);
+            renderSession();
+            showToast(`Added "${drill.name}" to session`);
+        }
+
+        // Remove Drill from Session
+        function removeDrillFromSession(instanceId) {
+            const index = state.session.findIndex(d => d.instanceId === instanceId);
+            if (index > -1) {
+                const removedName = state.session[index].name;
+                state.session.splice(index, 1);
+                renderSession();
+                showToast(`Removed "${removedName}" from session`, 'info');
+            }
+        }
+
+        // Move Drill Up or Down in Session
+        function moveDrill(instanceId, direction) {
+            const index = state.session.findIndex(d => d.instanceId === instanceId);
+            if (index < 0) return;
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= state.session.length) return;
+
+            // Swap
+            const temp = state.session[index];
+            state.session[index] = state.session[targetIndex];
+            state.session[targetIndex] = temp;
+            renderSession();
+        }
+
+        // Update Drill Duration in Session
+        function updateSessionDrillDuration(instanceId, newDuration) {
+            const drill = state.session.find(d => d.instanceId === instanceId);
+            if (drill) {
+                drill.customDuration = Math.max(1, parseInt(newDuration) || 5);
+                updateSessionTimeBadge();
+            }
+        }
+
+        // Clear Session
+        function clearSession() {
+            if (state.session.length === 0) return;
+            state.session = [];
+            renderSession();
+            showToast('Session cleared successfully', 'info');
+        }
+
+        // Render Session Builder
+        function renderSession() {
+            const container = document.getElementById('session-drills-list');
+            document.getElementById('session-drill-count').innerText = `${state.session.length} drills`;
+
+            updateSessionTimeBadge();
+
+            if (state.session.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-slate-400 space-y-2 border-2 border-dashed border-slate-200 rounded-2xl p-6">
+                        <i class="fa-solid fa-clipboard text-3xl text-slate-300"></i>
+                        <p class="text-sm font-medium text-slate-600">Your practice session is empty</p>
+                        <p class="text-xs text-slate-400">Click the "+ Add" button on any drill from the library to build your session timeline.</p>
+                    </div>
+                `;
+                renderEquipmentChecklist();
+                return;
+            }
+
+            container.innerHTML = state.session.map((drill, idx) => `
+                <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-2 relative group hover:border-slate-300 transition">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getCategoryColor(drill.category)}">
+                                ${drill.category}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="moveDrill('${drill.instanceId}', -1)" ${idx === 0 ? 'disabled class="opacity-30 cursor-not-allowed text-slate-400 p-1"' : 'class="text-slate-400 hover:text-slate-600 p-1"'} title="Move Up"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                            <button onclick="moveDrill('${drill.instanceId}', 1)" ${idx === state.session.length - 1 ? 'disabled class="opacity-30 cursor-not-allowed text-slate-400 p-1"' : 'class="text-slate-400 hover:text-slate-600 p-1"'} title="Move Down"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                            <button onclick="removeDrillFromSession('${drill.instanceId}')" class="text-slate-400 hover:text-red-500 p-1 ml-1" title="Remove"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-slate-800 text-sm">${drill.name}</h4>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <span class="text-slate-500"><i class="fa-solid fa-box text-slate-400 mr-1"></i>${drill.equipment.join(', ') || 'None'}</span>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-slate-500 font-medium">Duration:</span>
+                            <input type="number" min="1" max="90" value="${drill.customDuration}" onchange="updateSessionDrillDuration('${drill.instanceId}', this.value)" class="w-14 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-center font-bold text-slate-800 focus:ring-1 focus:ring-brand-600 focus:outline-none">
+                            <span class="text-slate-500">min</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            renderEquipmentChecklist();
+        }
+
+        function updateSessionTimeBadge() {
+            const totalMins = state.session.reduce((acc, d) => acc + (parseInt(d.customDuration) || 0), 0);
+            document.getElementById('total-session-time').innerText = totalMins;
+        }
+
+        // Equipment Checklist Calculation
+        function renderEquipmentChecklist() {
+            const listEl = document.getElementById('equipment-checklist-items');
+            
+            // Consolidate equipment
+            const equipmentMap = {};
+            state.session.forEach(drill => {
+                if (drill.equipment) {
+                    drill.equipment.forEach(item => {
+                        equipmentMap[item] = (equipmentMap[item] || 0) + 1;
+                    });
+                }
+            });
+
+            const keys = Object.keys(equipmentMap);
+            if (keys.length === 0) {
+                listEl.innerHTML = `<li class="text-slate-400 text-sm italic">No equipment required for current session drills.</li>`;
+                return;
+            }
+
+            listEl.innerHTML = keys.map(item => `
+                <li class="flex items-center justify-between bg-white border border-brand-100 p-2 rounded-lg shadow-sm">
+                    <span class="font-medium flex items-center"><i class="fa-solid fa-check text-brand-600 mr-2"></i> ${item}</span>
+                    <span class="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded font-bold">Used in ${equipmentMap[item]} drill(s)</span>
+                </li>
+            `).join('');
+        }
+
+        // Tab Switching in Builder
+        function switchBuilderTab(tab) {
+            state.activeTab = tab;
+            const btnTimeline = document.getElementById('tab-btn-timeline');
+            const btnEquip = document.getElementById('tab-btn-equipment');
+            const contentTimeline = document.getElementById('tab-content-timeline');
+            const contentEquip = document.getElementById('tab-content-equipment');
+
+            if (tab === 'timeline') {
+                btnTimeline.className = 'flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-600 font-semibold transition';
+                btnEquip.className = 'flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition';
+                contentTimeline.classList.remove('hidden');
+                contentEquip.classList.add('hidden');
+            } else {
+                btnEquip.className = 'flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-600 font-semibold transition';
+                btnTimeline.className = 'flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition';
+                contentEquip.classList.remove('hidden');
+                contentTimeline.classList.add('hidden');
+            }
+        }
+
+        // Drill Details Modal
+        function openDrillModal(drillId) {
+            const drill = state.drills.find(d => d.id === drillId);
+            if (!drill) return;
+
+            document.getElementById('modal-category').innerText = drill.category;
+            document.getElementById('modal-title').innerText = drill.name;
+            document.getElementById('modal-players').innerText = `${drill.minPlayers}-${drill.maxPlayers}`;
+            document.getElementById('modal-duration').innerText = drill.duration;
+            document.getElementById('modal-equipment').innerText = drill.equipment.join(', ') || 'None';
+            document.getElementById('modal-description').innerText = drill.description;
+
+            // Edit button hook
+            document.getElementById('modal-edit-btn').onclick = function() {
+                closeDrillModal();
+                openDrillEditorModal(drill.id);
+            };
+
+            // Video parsing
+            const videoContainer = document.getElementById('modal-video-container');
+            const parsedVideo = parseVideoEmbedUrl(drill.videoUrl);
+
+            if (parsedVideo) {
+                videoContainer.classList.remove('hidden');
+                if (parsedVideo.type === 'iframe') {
+                    videoContainer.innerHTML = `<iframe src="${parsedVideo.src}" class="w-full h-full border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+                } else {
+                    videoContainer.innerHTML = `
+                        <div class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                            <i class="fa-solid fa-video text-3xl text-brand-500 mb-2"></i>
+                            <a href="${parsedVideo.url}" target="_blank" rel="noopener noreferrer" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow transition flex items-center space-x-2">
+                                <span>Watch Video External Link</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+            } else {
+                videoContainer.classList.add('hidden');
+                videoContainer.innerHTML = '';
+            }
+
+            const pointsList = document.getElementById('modal-coaching-points');
+            pointsList.innerHTML = drill.coachingPoints.map(p => `<li>${p}</li>`).join('');
+
+            document.getElementById('drill-modal').classList.remove('hidden');
+        }
+
+        function closeDrillModal() {
+            document.getElementById('drill-modal').classList.add('hidden');
+            // Stop video playing on modal close
+            document.getElementById('modal-video-container').innerHTML = '';
+        }
+
+        // Session Settings Modal
+        function openSessionSettingsModal() {
+            document.getElementById('session-settings-modal').classList.remove('hidden');
+        }
+
+        function closeSessionSettingsModal() {
+            document.getElementById('session-settings-modal').classList.add('hidden');
+        }
+
+        function saveSessionSettings() {
+            state.sessionMeta.title = document.getElementById('setting-title').value || 'Soccer Practice Session';
+            state.sessionMeta.coach = document.getElementById('setting-coach').value || 'Coach';
+            state.sessionMeta.date = document.getElementById('setting-date').value || new Date().toISOString().split('T')[0];
+
+            document.getElementById('footer-session-meta').innerText = state.sessionMeta.title;
+            closeSessionSettingsModal();
+            showToast('Session settings updated');
+        }
+
+        // ADD / EDIT DRILL MODAL HANDLERS
+        function openDrillEditorModal(drillId = null) {
+            const form = document.getElementById('drill-editor-form');
+            form.reset();
+
+            const deleteBtn = document.getElementById('editor-delete-btn');
+
+            if (drillId) {
+                const drill = state.drills.find(d => d.id === drillId);
+                if (!drill) return;
+
+                document.getElementById('editor-modal-title').innerText = 'Edit Drill';
+                document.getElementById('editor-drill-id').value = drill.id;
+                document.getElementById('editor-name').value = drill.name;
+                document.getElementById('editor-category').value = drill.category;
+                document.getElementById('editor-duration').value = drill.duration;
+                document.getElementById('editor-min-players').value = drill.minPlayers;
+                document.getElementById('editor-max-players').value = drill.maxPlayers;
+                document.getElementById('editor-video-url').value = drill.videoUrl || '';
+                document.getElementById('editor-equipment').value = drill.equipment.join(', ');
+                document.getElementById('editor-description').value = drill.description;
+                document.getElementById('editor-points').value = drill.coachingPoints.join('\n');
+
+                deleteBtn.classList.remove('hidden');
+            } else {
+                document.getElementById('editor-modal-title').innerText = 'Add Custom Drill';
+                document.getElementById('editor-drill-id').value = '';
+                deleteBtn.classList.add('hidden');
+            }
+
+            document.getElementById('drill-editor-modal').classList.remove('hidden');
+        }
+
+        function closeDrillEditorModal() {
+            document.getElementById('drill-editor-modal').classList.add('hidden');
+            document.getElementById('drill-editor-form').reset();
+        }
+
+        function handleDrillFormSubmit(e) {
+            e.preventDefault();
+            const drillId = document.getElementById('editor-drill-id').value;
+            const name = document.getElementById('editor-name').value;
+            const category = document.getElementById('editor-category').value;
+            const duration = parseInt(document.getElementById('editor-duration').value) || 15;
+            const minPlayers = parseInt(document.getElementById('editor-min-players').value) || 4;
+            const maxPlayers = parseInt(document.getElementById('editor-max-players').value) || 12;
+            const videoUrl = document.getElementById('editor-video-url').value.trim();
+            const equipmentStr = document.getElementById('editor-equipment').value;
+            const description = document.getElementById('editor-description').value;
+            const pointsStr = document.getElementById('editor-points').value;
+
+            const equipment = equipmentStr ? equipmentStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+            const coachingPoints = pointsStr ? pointsStr.split('\n').map(s => s.trim()).filter(Boolean) : ['Focus on quality execution'];
+
+            if (drillId) {
+                // Edit Existing Drill
+                const drillIndex = state.drills.findIndex(d => d.id === drillId);
+                if (drillIndex > -1) {
+                    state.drills[drillIndex] = {
+                        ...state.drills[drillIndex],
+                        name,
+                        category,
+                        minPlayers,
+                        maxPlayers,
+                        duration,
+                        videoUrl,
+                        equipment,
+                        description,
+                        coachingPoints
+                    };
+
+                    // Update in current session if exists
+                    state.session.forEach(sDrill => {
+                        if (sDrill.id === drillId) {
+                            sDrill.name = name;
+                            sDrill.category = category;
+                            sDrill.equipment = equipment;
+                            sDrill.description = description;
+                            sDrill.coachingPoints = coachingPoints;
+                            sDrill.videoUrl = videoUrl;
+                        }
+                    });
+
+                    showToast(`Drill "${name}" updated successfully`);
+                }
+            } else {
+                // Create New Custom Drill
+                const newDrill = {
+                    id: 'drill-' + Date.now(),
+                    name,
+                    category,
+                    minPlayers,
+                    maxPlayers,
+                    duration,
+                    videoUrl,
+                    equipment,
+                    description,
+                    coachingPoints
+                };
+
+                state.drills.unshift(newDrill);
+                showToast(`Custom drill "${name}" created`);
+            }
+
+            saveToLocalStorage();
+            renderLibrary();
+            renderSession();
+            closeDrillEditorModal();
+        }
+
+        function handleDeleteDrill() {
+            const drillId = document.getElementById('editor-drill-id').value;
+            if (!drillId) return;
+
+            const drill = state.drills.find(d => d.id === drillId);
+            if (!drill) return;
+
+            state.drills = state.drills.filter(d => d.id !== drillId);
+            state.session = state.session.filter(d => d.id !== drillId);
+
+            saveToLocalStorage();
+            renderLibrary();
+            renderSession();
+            closeDrillEditorModal();
+            showToast(`Drill "${drill.name}" removed from library`, 'info');
+        }
+
+        // Print Session Plan
+        function printSessionPlan() {
+            if (state.session.length === 0) {
+                showToast('Add at least one drill to the session before printing.', 'error');
+                return;
+            }
+
+            // Populate print area fields
+            document.getElementById('print-title').innerText = state.sessionMeta.title;
+            document.getElementById('print-coach').innerText = state.sessionMeta.coach;
+            document.getElementById('print-date').innerText = state.sessionMeta.date;
+            
+            const totalMins = state.session.reduce((acc, d) => acc + (parseInt(d.customDuration) || 0), 0);
+            document.getElementById('print-total-time').innerText = totalMins;
+
+            // Populate print equipment list
+            const equipmentMap = {};
+            state.session.forEach(drill => {
+                if (drill.equipment) {
+                    drill.equipment.forEach(item => {
+                        equipmentMap[item] = (equipmentMap[item] || 0) + 1;
+                    });
+                }
+            });
+            const printEquipEl = document.getElementById('print-equipment-list');
+            printEquipEl.innerHTML = Object.keys(equipmentMap).map(item => `
+                <li class="border border-slate-200 rounded p-1.5 flex justify-between">
+                    <span class="font-medium">${item}</span>
+                    <span class="font-bold text-slate-500">x${equipmentMap[item]}</span>
+                </li>
+            `).join('') || '<li class="text-slate-500 italic">None required</li>';
+
+            // Populate print drills container
+            const printDrillsEl = document.getElementById('print-drills-container');
+            printDrillsEl.innerHTML = state.session.map((drill, idx) => `
+                <div class="border border-slate-300 rounded-xl p-5 break-inside-avoid shadow-sm mb-4">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="w-8 h-8 rounded-lg bg-slate-900 text-white font-bold text-sm flex items-center justify-center">${idx + 1}</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-900">${drill.name}</h3>
+                                <span class="text-xs font-bold uppercase tracking-wider text-brand-700">${drill.category}</span>
+                            </div>
+                        </div>
+                        <div class="text-right text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg">
+                            <div>Duration: ${drill.customDuration} mins</div>
+                            <div>Players: ${drill.minPlayers}-${drill.maxPlayers}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Description</h4>
+                            <p class="text-slate-700 leading-relaxed">${drill.description}</p>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coaching Points</h4>
+                            <ul class="list-disc pl-4 space-y-1 text-slate-700">
+                                ${drill.coachingPoints.map(p => `<li>${p}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    ${drill.equipment.length > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 flex items-center space-x-2">
+                            <span class="font-bold uppercase tracking-wider text-slate-500">Equipment:</span>
+                            <span>${drill.equipment.join(', ')}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            window.print();
+        }
+    </script>
+</body>
+</html>
