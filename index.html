@@ -452,7 +452,7 @@
                 minPlayers: 6,
                 maxPlayers: 20,
                 duration: 15,
-                equipment: ['Cones', 'Balls', 'Goals', 'Pennies'],
+                equipment: ['Cones', 'Balls', 'Pugg Goals', 'Pinnies'],
                 videoUrl: '',
                 description: 'Attacker receives ball from coach and attacks 1v1 against defender trying to score in mini goals.',
                 coachingPoints: ['Defender close down quickly and slow down on approach', 'Attacker use change of pace and skill moves', 'Low center of gravity for defender']
@@ -464,7 +464,7 @@
                 minPlayers: 6,
                 maxPlayers: 10,
                 duration: 15,
-                equipment: ['Cones', 'Balls', 'Pennies'],
+                equipment: ['Cones', 'Balls', 'Pinnies'],
                 videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
                 description: '4 attacking players on the outside of a 8x8 grid keep possession against 2 defenders inside. 2-touch max.',
                 coachingPoints: ['Support angles and creating passing lanes', 'Quick decision making under pressure', 'Transition speed when ball is won']
@@ -476,7 +476,7 @@
                 minPlayers: 6,
                 maxPlayers: 16,
                 duration: 15,
-                equipment: ['Cones', 'Balls', 'Goals'],
+                equipment: ['Cones', 'Balls', 'Full-Size Goals'],
                 videoUrl: '',
                 description: 'Receive a square pass from the flank and strike first-time or take a touch and shoot on goal.',
                 coachingPoints: ['Plant non-shooting foot pointing at target', 'Strike through the center of the ball (laces)', 'Keep knee over the ball to keep shot low']
@@ -488,7 +488,7 @@
                 minPlayers: 6,
                 maxPlayers: 25,
                 duration: 12,
-                equipment: ['Cones', 'Balls', 'Hurdles'],
+                equipment: ['Cones', 'Balls', 'Agility Ladders'],
                 videoUrl: '',
                 description: 'Players dribble through slalom cones, perform toe-taps and roll-overs, jump small hurdles, and sprint 10 yards.',
                 coachingPoints: ['Close ball control using both feet', 'Head up scanning outside the ball', 'Quick footwork through obstacles']
@@ -512,7 +512,7 @@
                 minPlayers: 10,
                 maxPlayers: 20,
                 duration: 20,
-                equipment: ['Cones', 'Balls', 'Goals', 'Pennies'],
+                equipment: ['Cones', 'Balls', 'Full-Size Goals', 'Pinnies'],
                 videoUrl: '',
                 description: 'Conditioned small-sided scrimmage applying all tactical concepts learned during the practice session.',
                 coachingPoints: ['Encourage switching play', 'Compact team shape in attack and defense', 'High energy and positive communication']
@@ -545,7 +545,7 @@
                     await signInAnonymously(window.auth);
                 }
             } catch (e) {
-                console.error("Custom token auth failed, falling back to anonymous:", e);
+                console.error("Auth failed, falling back to anonymous:", e);
                 await signInAnonymously(window.auth).catch(err => console.error("Anon auth failed:", err));
             }
 
@@ -553,11 +553,8 @@
                 currentUser = user;
                 if (!user) return;
 
-                // Setup Firestore Listener for Drills using Public Data Path per rules
-                // Path: artifacts/{appId}/public/data/drills
                 const drillsCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'drills');
                 
-                // First check if collection is empty; if so, seed default drills
                 try {
                     const snapshot = await getDocs(drillsCol);
                     if (snapshot.empty) {
@@ -569,7 +566,6 @@
                     console.error("Error seeding default drills:", err);
                 }
 
-                // Realtime listener (No complex queries rule followed)
                 if (unsubscribeDrills) unsubscribeDrills();
                 unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
                     const loadedDrills = [];
@@ -593,10 +589,45 @@
         };
 
         // Toast Notification System
-<!-- ... --><script>
-        // Category Badge Colors
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-[#1e439b]' : 'bg-emerald-600';
+            
+            toast.className = `${bgColor} text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center space-x-2 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-triangle-exclamation' : type === 'info' ? 'fa-info-circle' : 'fa-circle-check'}"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Category Badge Helpers
         function getCategoryColor(cat) {
-<!-- ... --><script>
+            const colors = {
+                warmup: 'bg-amber-100 text-amber-800 border-amber-200',
+                passing: 'bg-blue-100 text-blue-800 border-blue-200',
+                dribbling: 'bg-purple-100 text-purple-800 border-purple-200',
+                shooting: 'bg-rose-100 text-rose-800 border-rose-200',
+                possession: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                defending: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+                fitness: 'bg-orange-100 text-orange-800 border-orange-200',
+                other: 'bg-slate-100 text-slate-800 border-slate-200'
+            };
+            return colors[cat] || colors.other;
+        }
+
+        function updatePlayerSliderLabel() {
+            const val = document.getElementById('filter-players').value;
+            document.getElementById('player-slider-val').innerText = val == 0 ? 'All' : `${val} players`;
+        }
+
         // Filter Library Drills
         function filterDrills() {
             const query = document.getElementById('search-input').value.toLowerCase();
@@ -618,73 +649,330 @@
             renderDrillList(filtered);
         }
 
-        // Render Drill Library
         function renderLibrary() {
             filterDrills();
         }
-<!-- ... --><script>
-        // ADD / EDIT DRILL MODAL HANDLERS
-        function openDrillEditorModal(drillId = null) {
-            const form = document.getElementById('drill-editor-form');
-            form.reset();
 
-            const deleteBtn = document.getElementById('editor-delete-btn');
+        function renderDrillList(drillsToRender) {
+            const container = document.getElementById('drill-library-list');
+            document.getElementById('drill-count-badge').innerText = `${drillsToRender.length} drills`;
+
+            if (drillsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-filter-circle-xmark text-3xl mb-2"></i>
+                        <p class="text-sm">No drills match your filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = drillsToRender.map(drill => `
+                <div class="bg-white border border-slate-200 rounded-xl p-3.5 hover:border-[#1e439b] hover:shadow-md transition group relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getCategoryColor(drill.category)}">
+                                ${drill.category}
+                            </span>
+                            <div class="flex items-center space-x-1">
+                                ${drill.videoUrl ? `<span class="bg-red-50 text-red-600 border border-red-200 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-medium"><i class="fa-solid fa-play text-[9px]"></i> Video</span>` : ''}
+                                <button onclick="openDrillModal('${drill.id}')" title="Preview Drill" class="text-slate-400 hover:text-[#1e439b] p-1 rounded transition">
+                                    <i class="fa-solid fa-circle-info text-base"></i>
+                                </button>
+                                <button onclick="openCustomDrillModal('${drill.id}')" title="Edit Drill" class="text-slate-400 hover:text-[#1e439b] p-1 rounded transition">
+                                    <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm mb-1 group-hover:text-[#1e439b] transition line-clamp-1">${drill.name}</h3>
+                        <p class="text-xs text-slate-500 line-clamp-2 mb-3">${drill.description}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <div class="flex items-center space-x-3">
+                            <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${drill.duration}m</span>
+                            <span><i class="fa-solid fa-users text-slate-400 mr-1"></i>${drill.minPlayers}-${drill.maxPlayers}</span>
+                        </div>
+                        <button onclick="addDrillToSession('${drill.id}')" class="bg-blue-50 text-[#1e439b] hover:bg-[#1e439b] hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span>Add</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add Drill to Active Session
+        function addDrillToSession(drillId) {
+            const drill = state.drills.find(d => d.id === drillId);
+            if (!drill) return;
+
+            const instance = {
+                ...JSON.parse(JSON.stringify(drill)),
+                instanceId: 'inst-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)
+            };
+
+            state.session.push(instance);
+            renderSession();
+            showToast(`Added "${drill.name}" to session`);
+        }
+
+        function removeDrillFromSession(instanceId) {
+            state.session = state.session.filter(item => item.instanceId !== instanceId);
+            renderSession();
+        }
+
+        function updateDrillDurationInSession(instanceId, newDuration) {
+            const item = state.session.find(d => d.instanceId === instanceId);
+            if (item) {
+                item.duration = parseInt(newDuration) || 5;
+                calculateTotalTime();
+            }
+        }
+
+        function moveSessionDrill(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= state.session.length) return;
+            const temp = state.session[index];
+            state.session[index] = state.session[newIndex];
+            state.session[newIndex] = temp;
+            renderSession();
+        }
+
+        function clearSession() {
+            if (state.session.length === 0) return;
+            state.session = [];
+            renderSession();
+            showToast('Session cleared', 'info');
+        }
+
+        // Session Rendering
+        function renderSession() {
+            const container = document.getElementById('session-drills-list');
+            document.getElementById('session-drill-count').innerText = `${state.session.length} drills`;
+
+            if (state.session.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                        <i class="fa-solid fa-plus-circle text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-sm font-medium">Your practice timeline is empty.</p>
+                        <p class="text-xs text-slate-400 mt-1">Select drills from the library to build your plan.</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = state.session.map((drill, idx) => `
+                    <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="flex flex-col text-slate-300 hover:text-slate-500">
+                                <button onclick="moveSessionDrill(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20 cursor-not-allowed"' : ''} class="p-0.5 hover:text-[#1e439b]"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                                <button onclick="moveSessionDrill(${idx}, 1)" ${idx === state.session.length - 1 ? 'disabled class="opacity-20 cursor-not-allowed"' : ''} class="p-0.5 hover:text-[#1e439b]"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                            </div>
+                            <span class="w-5 h-5 rounded-full bg-blue-50 text-[#1e439b] text-xs font-bold flex items-center justify-center">${idx + 1}</span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800 line-clamp-1">${drill.name}</h4>
+                                <span class="text-[10px] font-semibold text-slate-400 uppercase">${drill.category}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                                <input type="number" min="1" max="120" value="${drill.duration}" onchange="updateDrillDurationInSession('${drill.instanceId}', this.value)" class="w-9 bg-transparent text-xs font-bold text-slate-700 text-center focus:outline-none">
+                                <span class="text-[10px] text-slate-400">m</span>
+                            </div>
+                            <button onclick="removeDrillFromSession('${drill.instanceId}')" class="text-slate-300 hover:text-red-500 p-1 rounded transition">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            calculateTotalTime();
+            updateEquipmentChecklist();
+            updatePrintView();
+        }
+
+        function calculateTotalTime() {
+            const total = state.session.reduce((sum, d) => sum + (parseInt(d.duration) || 0), 0);
+            document.getElementById('total-session-time').innerText = total;
+            document.getElementById('print-total-time').innerText = total;
+        }
+
+        function updateEquipmentChecklist() {
+            const counts = {};
+            state.session.forEach(drill => {
+                if (drill.equipment) {
+                    drill.equipment.forEach(item => {
+                        counts[item] = (counts[item] || 0) + 1;
+                    });
+                }
+            });
+
+            const checklist = document.getElementById('equipment-checklist-items');
+            const printList = document.getElementById('print-equipment-list');
+            
+            const keys = Object.keys(counts);
+            if (keys.length === 0) {
+                checklist.innerHTML = `<li class="text-xs text-slate-400 italic">No drills added to session yet.</li>`;
+                printList.innerHTML = `<li class="text-xs text-slate-400 italic">No equipment required.</li>`;
+            } else {
+                checklist.innerHTML = keys.map(k => `
+                    <li class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200/60 shadow-2xs">
+                        <span class="flex items-center"><i class="fa-solid fa-check text-[#1e439b] text-xs mr-2"></i> ${k}</span>
+                        <span class="text-xs font-bold bg-blue-100 text-[#1e439b] px-2 py-0.5 rounded-full">${counts[k]} drill${counts[k] > 1 ? 's' : ''}</span>
+                    </li>
+                `).join('');
+
+                printList.innerHTML = keys.map(k => `
+                    <li class="flex items-center space-x-1.5"><i class="fa-regular fa-square text-slate-400"></i> <span>${k} (${counts[k]})</span></li>
+                `).join('');
+            }
+        }
+
+        function switchBuilderTab(tab) {
+            state.activeTab = tab;
+            const timelineBtn = document.getElementById('tab-btn-timeline');
+            const equipmentBtn = document.getElementById('tab-btn-equipment');
+            const timelineContent = document.getElementById('tab-content-timeline');
+            const equipmentContent = document.getElementById('tab-content-equipment');
+
+            if (tab === 'timeline') {
+                timelineBtn.className = "flex-1 py-2.5 text-center border-b-2 border-[#1e439b] text-[#1e439b] font-semibold transition";
+                equipmentBtn.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                timelineContent.classList.remove('hidden');
+                equipmentContent.classList.add('hidden');
+            } else {
+                equipmentBtn.className = "flex-1 py-2.5 text-center border-b-2 border-[#1e439b] text-[#1e439b] font-semibold transition";
+                timelineBtn.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                equipmentContent.classList.remove('hidden');
+                timelineContent.classList.add('hidden');
+            }
+        }
+
+        // Video Embed URL Parser
+        function parseEmbedVideoUrl(url) {
+            if (!url) return null;
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+            }
+            if (url.includes('vimeo.com')) {
+                const match = url.match(/vimeo\.com\/(\d+)/);
+                return match ? `https://player.vimeo.com/video/${match[1]}` : null;
+            }
+            return null;
+        }
+
+        // Drill Details Modal
+        function openDrillModal(drillId) {
+            const drill = state.drills.find(d => d.id === drillId);
+            if (!drill) return;
+
+            document.getElementById('modal-title').innerText = drill.name;
+            document.getElementById('modal-category').innerText = drill.category;
+            document.getElementById('modal-players').innerText = `${drill.minPlayers}-${drill.maxPlayers}`;
+            document.getElementById('modal-duration').innerText = drill.duration;
+            document.getElementById('modal-equipment').innerText = drill.equipment ? drill.equipment.join(', ') : 'None';
+            document.getElementById('modal-description').innerText = drill.description;
+            
+            const pointsList = document.getElementById('modal-coaching-points');
+            pointsList.innerHTML = drill.coachingPoints ? drill.coachingPoints.map(p => `<li>${p}</li>`).join('') : '<li>Focus on execution</li>';
+
+            const videoContainer = document.getElementById('modal-video-container');
+            const videoWrapper = document.getElementById('modal-video-wrapper');
+            const embedUrl = parseEmbedVideoUrl(drill.videoUrl);
+
+            if (embedUrl) {
+                videoContainer.classList.remove('hidden');
+                videoWrapper.innerHTML = `
+                    <div class="relative pt-[56.25%] w-full rounded-xl overflow-hidden shadow">
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+            } else if (drill.videoUrl) {
+                videoContainer.classList.remove('hidden');
+                videoWrapper.innerHTML = `
+                    <a href="${drill.videoUrl}" target="_blank" class="inline-flex items-center space-x-2 text-xs font-semibold text-[#1e439b] bg-blue-50 p-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition w-full">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <span>Watch Tutorial Video Link</span>
+                    </a>
+                `;
+            } else {
+                videoContainer.classList.add('hidden');
+                videoWrapper.innerHTML = '';
+            }
+
+            document.getElementById('modal-edit-btn').onclick = function() {
+                closeDrillModal();
+                openCustomDrillModal(drill.id);
+            };
+
+            document.getElementById('drill-modal').classList.remove('hidden');
+        }
+
+        function closeDrillModal() {
+            document.getElementById('drill-modal').classList.add('hidden');
+            document.getElementById('modal-video-wrapper').innerHTML = '';
+        }
+
+        // Custom Drill Modal Add/Edit
+        function openCustomDrillModal(drillId = null) {
+            const form = document.getElementById('custom-drill-form');
+            form.reset();
 
             if (drillId) {
                 const drill = state.drills.find(d => d.id === drillId);
                 if (!drill) return;
 
-                document.getElementById('editor-modal-title').innerText = 'Edit Drill';
-                document.getElementById('editor-drill-id').value = drill.id;
-                document.getElementById('editor-name').value = drill.name;
-                document.getElementById('editor-category').value = drill.category;
-                document.getElementById('editor-duration').value = drill.duration;
-                document.getElementById('editor-min-players').value = drill.minPlayers;
-                document.getElementById('editor-max-players').value = drill.maxPlayers;
-                document.getElementById('editor-video-url').value = drill.videoUrl || '';
-                document.getElementById('editor-equipment').value = drill.equipment ? drill.equipment.join(', ') : '';
-                document.getElementById('editor-description').value = drill.description;
-                document.getElementById('editor-points').value = drill.coachingPoints ? drill.coachingPoints.join('\n') : '';
-
-                deleteBtn.classList.remove('hidden');
+                document.getElementById('custom-drill-modal-title').innerText = 'Edit Drill';
+                document.getElementById('custom-drill-editing-id').value = drill.id;
+                document.getElementById('custom-name').value = drill.name;
+                document.getElementById('custom-category').value = drill.category;
+                document.getElementById('custom-duration').value = drill.duration;
+                document.getElementById('custom-min-players').value = drill.minPlayers;
+                document.getElementById('custom-max-players').value = drill.maxPlayers;
+                document.getElementById('custom-video-url').value = drill.videoUrl || '';
+                document.getElementById('custom-equipment').value = drill.equipment ? drill.equipment.join(', ') : '';
+                document.getElementById('custom-description').value = drill.description;
+                document.getElementById('custom-points').value = drill.coachingPoints ? drill.coachingPoints.join('\n') : '';
             } else {
-                document.getElementById('editor-modal-title').innerText = 'Add Custom Drill';
-                document.getElementById('editor-drill-id').value = '';
-                deleteBtn.classList.add('hidden');
+                document.getElementById('custom-drill-modal-title').innerText = 'Add New Drill';
+                document.getElementById('custom-drill-editing-id').value = '';
             }
 
-            document.getElementById('drill-editor-modal').classList.remove('hidden');
+            document.getElementById('custom-drill-modal').classList.remove('hidden');
         }
 
-        function closeDrillEditorModal() {
-            document.getElementById('drill-editor-modal').classList.add('hidden');
-            document.getElementById('drill-editor-form').reset();
+        function closeCustomDrillModal() {
+            document.getElementById('custom-drill-modal').classList.add('hidden');
         }
 
-        async function handleDrillFormSubmit(e) {
+        async function handleCustomDrillSubmit(e) {
             e.preventDefault();
             if (!currentUser) {
-                showToast("Not authenticated with cloud yet", "error");
+                showToast("Cloud sync connecting...", "error");
                 return;
             }
 
-            const { doc, setDoc, updateDoc } = window.firebaseModules;
-            const drillId = document.getElementById('editor-drill-id').value;
-            const name = document.getElementById('editor-name').value;
-            const category = document.getElementById('editor-category').value;
-            const duration = parseInt(document.getElementById('editor-duration').value) || 15;
-            const minPlayers = parseInt(document.getElementById('editor-min-players').value) || 4;
-            const maxPlayers = parseInt(document.getElementById('editor-max-players').value) || 12;
-            const videoUrl = document.getElementById('editor-video-url').value.trim();
-            const equipmentStr = document.getElementById('editor-equipment').value;
-            const description = document.getElementById('editor-description').value;
-            const pointsStr = document.getElementById('editor-points').value;
+            const editingId = document.getElementById('custom-drill-editing-id').value;
+            const { doc, setDoc } = window.firebaseModules;
+
+            const name = document.getElementById('custom-name').value;
+            const category = document.getElementById('custom-category').value;
+            const duration = parseInt(document.getElementById('custom-duration').value) || 15;
+            const minPlayers = parseInt(document.getElementById('custom-min-players').value) || 4;
+            const maxPlayers = parseInt(document.getElementById('custom-max-players').value) || 12;
+            const videoUrl = document.getElementById('custom-video-url').value.trim();
+            const equipmentStr = document.getElementById('custom-equipment').value;
+            const description = document.getElementById('custom-description').value;
+            const pointsStr = document.getElementById('custom-points').value;
 
             const equipment = equipmentStr ? equipmentStr.split(',').map(s => s.trim()).filter(Boolean) : [];
             const coachingPoints = pointsStr ? pointsStr.split('\n').map(s => s.trim()).filter(Boolean) : ['Focus on quality execution'];
 
             const drillData = {
-                id: drillId || 'drill-' + Date.now(),
+                id: editingId || 'drill-' + Date.now(),
                 name,
                 category,
                 minPlayers,
@@ -701,7 +989,6 @@
                 const drillDocRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillData.id);
                 await setDoc(drillDocRef, drillData, { merge: true });
 
-                // Update session instances if active in session
                 state.session.forEach(sDrill => {
                     if (sDrill.id === drillData.id) {
                         sDrill.name = name;
@@ -714,36 +1001,72 @@
                 });
 
                 renderSession();
-                showToast(drillId ? `Drill "${name}" updated in cloud` : `Custom drill "${name}" saved to cloud`);
+                showToast(editingId ? `Updated "${name}" in cloud` : `Saved "${name}" to cloud`);
             } catch (err) {
                 console.error("Error saving drill to Firestore:", err);
                 showToast("Failed to save drill to cloud", "error");
             }
 
-            closeDrillEditorModal();
+            closeCustomDrillModal();
         }
 
-        async function handleDeleteDrill() {
-            if (!currentUser) return;
-            const drillId = document.getElementById('editor-drill-id').value;
-            if (!drillId) return;
+        // Session Settings
+        function openSessionSettingsModal() {
+            document.getElementById('session-settings-modal').classList.remove('hidden');
+        }
 
-            const drill = state.drills.find(d => d.id === drillId);
-            if (!drill) return;
+        function closeSessionSettingsModal() {
+            document.getElementById('session-settings-modal').classList.add('hidden');
+        }
 
-            try {
-                const { doc, deleteDoc } = window.firebaseModules;
-                await deleteDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillId));
-                state.session = state.session.filter(d => d.id !== drillId);
-                renderSession();
-                closeDrillEditorModal();
-                showToast(`Drill "${drill.name}" deleted from cloud`, 'info');
-            } catch (err) {
-                console.error("Error deleting drill:", err);
-                showToast("Failed to delete drill", "error");
+        function saveSessionSettings() {
+            state.sessionMeta.title = document.getElementById('setting-title').value;
+            state.sessionMeta.coach = document.getElementById('setting-coach').value;
+            state.sessionMeta.date = document.getElementById('setting-date').value;
+
+            document.getElementById('footer-session-meta').innerText = state.sessionMeta.title;
+            updatePrintView();
+            closeSessionSettingsModal();
+            showToast('Session details updated');
+        }
+
+        // Print View Updates
+        function updatePrintView() {
+            document.getElementById('print-title').innerText = state.sessionMeta.title;
+            document.getElementById('print-coach').innerText = state.sessionMeta.coach;
+            document.getElementById('print-date').innerText = state.sessionMeta.date;
+
+            const printContainer = document.getElementById('print-drills-container');
+            if (state.session.length === 0) {
+                printContainer.innerHTML = `<p class="text-sm text-slate-500 italic">No drills added to this session plan yet.</p>`;
+                return;
             }
+
+            printContainer.innerHTML = state.session.map((drill, index) => `
+                <div class="border-b border-slate-200 pb-4 mb-4 break-inside-avoid">
+                    <div class="flex justify-between items-center mb-1">
+                        <h2 class="text-lg font-bold text-slate-900">${index + 1}. ${drill.name}</h2>
+                        <span class="text-xs font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded">${drill.duration} Mins</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 flex space-x-4">
+                        <span><strong>Category:</strong> ${drill.category}</span>
+                        <span><strong>Players:</strong> ${drill.minPlayers}-${drill.maxPlayers}</span>
+                        <span><strong>Equipment:</strong> ${drill.equipment ? drill.equipment.join(', ') : 'None'}</span>
+                    </div>
+                    <p class="text-xs text-slate-700 leading-relaxed mb-2">${drill.description}</p>
+                    <div class="bg-slate-50 p-2.5 rounded border border-slate-100">
+                        <strong class="text-[11px] uppercase tracking-wider text-slate-600 block mb-1">Key Coaching Points:</strong>
+                        <ul class="list-disc pl-4 text-xs text-slate-700 space-y-0.5">
+                            ${drill.coachingPoints ? drill.coachingPoints.map(p => `<li>${p}</li>`).join('') : '<li>Focus on execution</li>'}
+                        </ul>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Print Session Plan
         function printSessionPlan() {
-<!-- ... --><script>
+            window.print();
+        }
+    </script>
+</body>
+</html>
