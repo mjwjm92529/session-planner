@@ -21,9 +21,16 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Firebase configuration and environment variables
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'soccer-practice-planner-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", projectId: "demo" };
+        // Global Firebase configuration
+        const appId = 'soccer-practice-planner-app';
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrgtiBAK-jJykVbz6v1cS8Ba25vdTO6c",
+            authDomain: "practice-planner-3ab7c.firebaseapp.com",
+            projectId: "practice-planner-3ab7c",
+            storageBucket: "practice-planner-3ab7c.firebasestorage.app",
+            messagingSenderId: "237865356776",
+            appId: "1:237865356776:web:dcb42ce0a4297fcf18e85d"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
