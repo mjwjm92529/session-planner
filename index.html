@@ -603,7 +603,12 @@
             const saved = localStorage.getItem('soccer_drills_backup');
             if (saved) {
                 try {
-                    state.drills = JSON.parse(saved);
+                    const parsed = JSON.parse(saved);
+                    if (parsed && parsed.length > 0) {
+                        state.drills = parsed;
+                    } else {
+                        state.drills = [...defaultDrills];
+                    }
                 } catch(e) {
                     state.drills = [...defaultDrills];
                 }
@@ -650,12 +655,22 @@
                     });
                     if (loadedDrills.length > 0) {
                         state.drills = loadedDrills;
+                        saveLocalDrills(); // Also persist snapshot locally so offline refreshes retain edits
                         isCloudConnected = true;
                         renderLibrary();
                         showToast("Connected to Cloud Database!", "success");
                     } else {
-                        // Seed initial data if empty
-                        defaultDrills.forEach(async (drill) => {
+                        // Check if we have local saved drills first before overwriting with defaults
+                        const saved = localStorage.getItem('soccer_drills_backup');
+                        let initialDrills = defaultDrills;
+                        if (saved) {
+                            try {
+                                const parsed = JSON.parse(saved);
+                                if (parsed && parsed.length > 0) initialDrills = parsed;
+                            } catch(e) {}
+                        }
+                        
+                        initialDrills.forEach(async (drill) => {
                             try {
                                 await setDoc(doc(drillsCol, drill.id), drill);
                             } catch(err) { console.warn("Seed error:", err); }
@@ -665,21 +680,18 @@
                     console.warn("Firestore snapshot error, falling back to local storage:", error);
                     isCloudConnected = false;
                     loadLocalDrills();
-                    showToast("Cloud connection error - check Firebase settings", "error");
+                    showToast("Cloud connection error - using local storage", "info");
                 });
             }
         });
 
         window.onload = function() {
+            // First load local drills immediately so the page doesn't blink with default values
+            loadLocalDrills();
+
             document.getElementById('setting-date').value = state.sessionMeta.date;
             document.getElementById('setting-title').value = state.sessionMeta.title;
             document.getElementById('setting-coach').value = state.sessionMeta.coach;
-            
-            setTimeout(() => {
-                if (state.drills.length === 0) {
-                    loadLocalDrills();
-                }
-            }, 500);
 
             renderSession();
         };
@@ -1116,11 +1128,11 @@
             } else {
                 state.drills.push(drillData);
             }
-            saveLocalDrills();
+            saveLocalDrills(); // Guarantee immediate local persistence
             renderLibrary();
 
             // Try Cloud Sync if connected
-            if (isCloudConnected && window.db && currentUser) {
+            if (isCloudConnected && window.db) {
                 try {
                     const { doc, setDoc } = window.firebaseModules;
                     const drillDocRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillData.id);
