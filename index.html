@@ -32,9 +32,14 @@
             appId: "1:237865356776:web:dcb42ce0a4297fcf18e85d"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        let app, db, auth;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch(e) {
+            console.warn("Firebase initialization warning:", e);
+        }
 
         window.db = db;
         window.auth = auth;
@@ -540,9 +545,35 @@
 
         let currentUser = null;
         let unsubscribeDrills = null;
+        let isCloudConnected = false;
+
+        // Fallback Local Storage Loader
+        function loadLocalDrills() {
+            const saved = localStorage.getItem('soccer_drills_backup');
+            if (saved) {
+                try {
+                    state.drills = JSON.parse(saved);
+                } catch(e) {
+                    state.drills = [...defaultDrills];
+                }
+            } else {
+                state.drills = [...defaultDrills];
+            }
+            renderLibrary();
+        }
+
+        function saveLocalDrills() {
+            localStorage.setItem('soccer_drills_backup', JSON.stringify(state.drills));
+        }
 
         // Initialize App & Firebase on Load
         window.addEventListener('firebase-ready', async () => {
+            if (!window.auth) {
+                console.warn("Firebase Auth not initialized, using local mode.");
+                loadLocalDrills();
+                return;
+            }
+
             const { signInWithCustomToken, signInAnonymously, onAuthStateChanged, collection, getDocs, setDoc, doc, onSnapshot } = window.firebaseModules;
             
             try {
@@ -551,47 +582,63 @@
                 } else {
                     await signInAnonymously(window.auth);
                 }
+                isCloudConnected = true;
             } catch (e) {
-                console.error("Auth failed, falling back to anonymous:", e);
-                await signInAnonymously(window.auth).catch(err => console.error("Anon auth failed:", err));
+                console.warn("Cloud connection failed or API key still propagating. Falling back to offline/local storage mode:", e);
+                isCloudConnected = false;
+                loadLocalDrills();
+                showToast("Running in local storage mode (Cloud connecting...)", "info");
             }
 
-            onAuthStateChanged(window.auth, async (user) => {
-                currentUser = user;
-                if (!user) return;
+            if (window.auth) {
+                onAuthStateChanged(window.auth, async (user) => {
+                    currentUser = user;
+                    if (!user) return;
 
-                const drillsCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'drills');
-                
-                try {
-                    const snapshot = await getDocs(drillsCol);
-                    if (snapshot.empty) {
-                        for (const drill of defaultDrills) {
-                            await setDoc(doc(drillsCol, drill.id), drill);
+                    const drillsCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'drills');
+                    
+                    try {
+                        const snapshot = await getDocs(drillsCol);
+                        if (snapshot.empty) {
+                            for (const drill of defaultDrills) {
+                                await setDoc(doc(drillsCol, drill.id), drill);
+                            }
                         }
+                    } catch (err) {
+                        console.warn("Error seeding default drills:", err);
                     }
-                } catch (err) {
-                    console.error("Error seeding default drills:", err);
-                }
 
-                if (unsubscribeDrills) unsubscribeDrills();
-                unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
-                    const loadedDrills = [];
-                    snapshot.forEach(docSnap => {
-                        loadedDrills.push({ id: docSnap.id, ...docSnap.data() });
+                    if (unsubscribeDrills) unsubscribeDrills();
+                    unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
+                        const loadedDrills = [];
+                        snapshot.forEach(docSnap => {
+                            loadedDrills.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+                        if (loadedDrills.length > 0) {
+                            state.drills = loadedDrills;
+                            isCloudConnected = true;
+                            renderLibrary();
+                        }
+                    }, (error) => {
+                        console.warn("Firestore snapshot error, falling back to local:", error);
+                        if (state.drills.length === 0) loadLocalDrills();
                     });
-                    state.drills = loadedDrills;
-                    renderLibrary();
-                }, (error) => {
-                    console.error("Firestore snapshot error:", error);
-                    showToast("Error syncing drills from cloud", "error");
                 });
-            });
+            }
         });
 
         window.onload = function() {
             document.getElementById('setting-date').value = state.sessionMeta.date;
             document.getElementById('setting-title').value = state.sessionMeta.title;
             document.getElementById('setting-coach').value = state.sessionMeta.coach;
+            
+            // Initial load check if firebase readiness event took too long or failed
+            setTimeout(() => {
+                if (state.drills.length === 0) {
+                    loadLocalDrills();
+                }
+            }, 500);
+
             renderSession();
         };
 
@@ -957,13 +1004,8 @@
 
         async function handleCustomDrillSubmit(e) {
             e.preventDefault();
-            if (!currentUser) {
-                showToast("Cloud sync connecting...", "error");
-                return;
-            }
 
             const editingId = document.getElementById('custom-drill-editing-id').value;
-            const { doc, setDoc } = window.firebaseModules;
 
             const name = document.getElementById('custom-name').value;
             const category = document.getElementById('custom-category').value;
@@ -992,28 +1034,40 @@
                 updatedAt: new Date().toISOString()
             };
 
-            try {
-                const drillDocRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillData.id);
-                await setDoc(drillDocRef, drillData, { merge: true });
+            // Update local state first
+            const existingIdx = state.drills.findIndex(d => d.id === drillData.id);
+            if (existingIdx >= 0) {
+                state.drills[existingIdx] = drillData;
+            } else {
+                state.drills.push(drillData);
+            }
+            saveLocalDrills();
+            renderLibrary();
 
-                state.session.forEach(sDrill => {
-                    if (sDrill.id === drillData.id) {
-                        sDrill.name = name;
-                        sDrill.category = category;
-                        sDrill.equipment = equipment;
-                        sDrill.description = description;
-                        sDrill.coachingPoints = coachingPoints;
-                        sDrill.videoUrl = videoUrl;
-                    }
-                });
-
-                renderSession();
-                showToast(editingId ? `Updated "${name}" in cloud` : `Saved "${name}" to cloud`);
-            } catch (err) {
-                console.error("Error saving drill to Firestore:", err);
-                showToast("Failed to save drill to cloud", "error");
+            // Try Cloud Sync if connected
+            if (isCloudConnected && window.db && currentUser) {
+                try {
+                    const { doc, setDoc } = window.firebaseModules;
+                    const drillDocRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillData.id);
+                    await setDoc(drillDocRef, drillData, { merge: true });
+                } catch (err) {
+                    console.warn("Failed to sync drill to cloud, saved locally:", err);
+                }
             }
 
+            state.session.forEach(sDrill => {
+                if (sDrill.id === drillData.id) {
+                    sDrill.name = name;
+                    sDrill.category = category;
+                    sDrill.equipment = equipment;
+                    sDrill.description = description;
+                    sDrill.coachingPoints = coachingPoints;
+                    sDrill.videoUrl = videoUrl;
+                }
+            });
+
+            renderSession();
+            showToast(editingId ? `Updated "${name}"` : `Saved "${name}"`);
             closeCustomDrillModal();
         }
 
