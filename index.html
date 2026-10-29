@@ -594,45 +594,38 @@
                 }
                 isCloudConnected = true;
             } catch (e) {
-                console.warn("Cloud connection failed or API key still propagating. Falling back to offline/local storage mode:", e);
-                isCloudConnected = false;
-                loadLocalDrills();
-                showToast("Running in local storage mode (Cloud connecting...)", "info");
+                console.warn("Cloud auth attempt error:", e);
+                // Attempt direct Firestore load without restricting on auth state for mobile compatibility
+                isCloudConnected = true;
             }
 
-            if (window.auth) {
-                onAuthStateChanged(window.auth, async (user) => {
-                    currentUser = user;
-                    if (!user) return;
-
-                    const drillsCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'drills');
-                    
-                    try {
-                        const snapshot = await getDocs(drillsCol);
-                        if (snapshot.empty) {
-                            for (const drill of defaultDrills) {
-                                await setDoc(doc(drillsCol, drill.id), drill);
-                            }
-                        }
-                    } catch (err) {
-                        console.warn("Error seeding default drills:", err);
-                    }
-
-                    if (unsubscribeDrills) unsubscribeDrills();
-                    unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
-                        const loadedDrills = [];
-                        snapshot.forEach(docSnap => {
-                            loadedDrills.push({ id: docSnap.id, ...docSnap.data() });
-                        });
-                        if (loadedDrills.length > 0) {
-                            state.drills = loadedDrills;
-                            isCloudConnected = true;
-                            renderLibrary();
-                        }
-                    }, (error) => {
-                        console.warn("Firestore snapshot error, falling back to local:", error);
-                        if (state.drills.length === 0) loadLocalDrills();
+            if (window.db) {
+                const drillsCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'drills');
+                
+                if (unsubscribeDrills) unsubscribeDrills();
+                unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
+                    const loadedDrills = [];
+                    snapshot.forEach(docSnap => {
+                        loadedDrills.push({ id: docSnap.id, ...docSnap.data() });
                     });
+                    if (loadedDrills.length > 0) {
+                        state.drills = loadedDrills;
+                        isCloudConnected = true;
+                        renderLibrary();
+                        showToast("Connected to Cloud Database!", "success");
+                    } else {
+                        // Seed initial data if empty
+                        defaultDrills.forEach(async (drill) => {
+                            try {
+                                await setDoc(doc(drillsCol, drill.id), drill);
+                            } catch(err) { console.warn("Seed error:", err); }
+                        });
+                    }
+                }, (error) => {
+                    console.warn("Firestore snapshot error, falling back to local storage:", error);
+                    isCloudConnected = false;
+                    loadLocalDrills();
+                    showToast("Cloud connection error - check Firebase settings", "error");
                 });
             }
         });
