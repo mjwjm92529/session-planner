@@ -649,28 +649,55 @@
                 
                 if (unsubscribeDrills) unsubscribeDrills();
                 unsubscribeDrills = onSnapshot(drillsCol, (snapshot) => {
-                    const loadedDrills = [];
+                    const cloudDrillsMap = new Map();
                     snapshot.forEach(docSnap => {
-                        loadedDrills.push({ id: docSnap.id, ...docSnap.data() });
+                        cloudDrillsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
                     });
-                    if (loadedDrills.length > 0) {
-                        state.drills = loadedDrills;
-                        saveLocalDrills(); // Also persist snapshot locally so offline refreshes retain edits
+
+                    // Merge strategy: Preserve locally edited/custom drills if newer or unsynced
+                    const savedLocal = localStorage.getItem('soccer_drills_backup');
+                    let localMap = new Map();
+                    if (savedLocal) {
+                        try {
+                            const parsed = JSON.parse(savedLocal);
+                            parsed.forEach(d => localMap.set(d.id, d));
+                        } catch(e) {}
+                    }
+
+                    // Combined drill list
+                    const mergedDrills = [];
+                    const allIds = new Set([...cloudDrillsMap.keys(), ...localMap.keys()]);
+
+                    allIds.forEach(id => {
+                        const localItem = localMap.get(id);
+                        const cloudItem = cloudDrillsMap.get(id);
+
+                        if (localItem && cloudItem) {
+                            // If local was modified, keep local version and ensure cloud gets synced
+                            if (localItem.isCustom || localItem.updatedAt) {
+                                mergedDrills.push(localItem);
+                                // Push local version to cloud if cloud is outdated
+                                setDoc(doc(drillsCol, id), localItem, { merge: true }).catch(() => {});
+                            } else {
+                                mergedDrills.push(cloudItem);
+                            }
+                        } else if (localItem) {
+                            mergedDrills.push(localItem);
+                            setDoc(doc(drillsCol, id), localItem, { merge: true }).catch(() => {});
+                        } else if (cloudItem) {
+                            mergedDrills.push(cloudItem);
+                        }
+                    });
+
+                    if (mergedDrills.length > 0) {
+                        state.drills = mergedDrills;
+                        saveLocalDrills();
                         isCloudConnected = true;
                         renderLibrary();
-                        showToast("Connected to Cloud Database!", "success");
+                        showToast("Drills synced!", "success");
                     } else {
-                        // Check if we have local saved drills first before overwriting with defaults
-                        const saved = localStorage.getItem('soccer_drills_backup');
-                        let initialDrills = defaultDrills;
-                        if (saved) {
-                            try {
-                                const parsed = JSON.parse(saved);
-                                if (parsed && parsed.length > 0) initialDrills = parsed;
-                            } catch(e) {}
-                        }
-                        
-                        initialDrills.forEach(async (drill) => {
+                        // Seed default drills if completely empty
+                        defaultDrills.forEach(async (drill) => {
                             try {
                                 await setDoc(doc(drillsCol, drill.id), drill);
                             } catch(err) { console.warn("Seed error:", err); }
@@ -1110,7 +1137,7 @@
                 id: editingId || 'drill-' + Date.now(),
                 name,
                 categories,
-                category: categories[0], // fallback for older structure
+                category: categories[0],
                 minPlayers,
                 maxPlayers,
                 duration,
@@ -1118,21 +1145,22 @@
                 equipment,
                 description,
                 coachingPoints,
+                isCustom: true,
                 updatedAt: new Date().toISOString()
             };
 
-            // Update local state first
+            // Update local state first and save immediately to localStorage
             const existingIdx = state.drills.findIndex(d => d.id === drillData.id);
             if (existingIdx >= 0) {
                 state.drills[existingIdx] = drillData;
             } else {
                 state.drills.push(drillData);
             }
-            saveLocalDrills(); // Guarantee immediate local persistence
+            saveLocalDrills();
             renderLibrary();
 
-            // Try Cloud Sync if connected
-            if (isCloudConnected && window.db) {
+            // Direct Cloud Write to guarantee cloud persistence across devices
+            if (window.db) {
                 try {
                     const { doc, setDoc } = window.firebaseModules;
                     const drillDocRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'drills', drillData.id);
