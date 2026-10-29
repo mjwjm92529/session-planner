@@ -597,6 +597,7 @@
         let currentUser = null;
         let unsubscribeDrills = null;
         let isCloudConnected = false;
+        let hasInitialSyncedToastShown = false;
 
         // Fallback Local Storage Loader
         function loadLocalDrills() {
@@ -673,17 +674,13 @@
                         const cloudItem = cloudDrillsMap.get(id);
 
                         if (localItem && cloudItem) {
-                            // If local was modified, keep local version and ensure cloud gets synced
                             if (localItem.isCustom || localItem.updatedAt) {
                                 mergedDrills.push(localItem);
-                                // Push local version to cloud if cloud is outdated
-                                setDoc(doc(drillsCol, id), localItem, { merge: true }).catch(() => {});
                             } else {
                                 mergedDrills.push(cloudItem);
                             }
                         } else if (localItem) {
                             mergedDrills.push(localItem);
-                            setDoc(doc(drillsCol, id), localItem, { merge: true }).catch(() => {});
                         } else if (cloudItem) {
                             mergedDrills.push(cloudItem);
                         }
@@ -694,7 +691,12 @@
                         saveLocalDrills();
                         isCloudConnected = true;
                         renderLibrary();
-                        showToast("Drills synced!", "success");
+                        
+                        // Only show notification once on initial load
+                        if (!hasInitialSyncedToastShown) {
+                            hasInitialSyncedToastShown = true;
+                            showToast("Connected to Cloud!", "success");
+                        }
                     } else {
                         // Seed default drills if completely empty
                         defaultDrills.forEach(async (drill) => {
@@ -707,7 +709,10 @@
                     console.warn("Firestore snapshot error, falling back to local storage:", error);
                     isCloudConnected = false;
                     loadLocalDrills();
-                    showToast("Cloud connection error - using local storage", "info");
+                    if (!hasInitialSyncedToastShown) {
+                        hasInitialSyncedToastShown = true;
+                        showToast("Using local storage", "info");
+                    }
                 });
             }
         });
