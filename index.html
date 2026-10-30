@@ -379,94 +379,106 @@
     </div>
 
     <!-- ADD / EDIT CUSTOM DRILL MODAL -->
-    <div id="custom-drill-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+    <div id="custom-drill-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 sm:p-6">
+        <div class="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-100 my-auto">
             <div class="p-5 bg-[#1e439b] text-white flex items-center justify-between">
                 <h3 id="custom-drill-modal-title" class="text-lg font-bold">Add Drill</h3>
                 <button onclick="closeCustomDrillModal()" class="text-blue-200 hover:text-white p-2 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="custom-drill-form" onsubmit="handleCustomDrillSubmit(event)" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <form id="custom-drill-form" onsubmit="handleCustomDrillSubmit(event)" class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
                 <input type="hidden" id="custom-drill-editing-id" value="">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Drill Name</label>
-                    <input type="text" id="custom-name" required placeholder="e.g. 4v2 Rondo" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
-                </div>
                 
-                <!-- Category Tags Multi-Selection -->
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Categories / Tags (Select multiple)</label>
-                    <div id="category-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="warmup" class="accent-[#1e439b] rounded">
-                            <span>Warmup</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="passing" class="accent-[#1e439b] rounded">
-                            <span>Passing</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="dribbling" class="accent-[#1e439b] rounded">
-                            <span>Dribbling</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="shooting" class="accent-[#1e439b] rounded">
-                            <span>Shooting</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="possession" class="accent-[#1e439b] rounded">
-                            <span>Possession</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="defending" class="accent-[#1e439b] rounded">
-                            <span>Defending</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="fitness" class="accent-[#1e439b] rounded">
-                            <span>Fitness</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="reactions" class="accent-[#1e439b] rounded">
-                            <span>Reactions</span>
-                        </label>
-                        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
-                            <input type="checkbox" name="custom-categories" value="other" class="accent-[#1e439b] rounded">
-                            <span>Other</span>
-                        </label>
+                <!-- Main Details Grid (Name, Duration, Video) -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-6">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Drill Name</label>
+                        <input type="text" id="custom-name" required placeholder="e.g. 4v2 Rondo" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Duration (mins)</label>
+                        <input type="number" id="custom-duration" min="1" max="60" value="15" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Video Link (YouTube, Vimeo, etc.)</label>
+                        <input type="url" id="custom-video-url" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
                     </div>
                 </div>
 
-                <!-- Group Size Multi-Selection (Individual, 2-24) -->
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Group Size(s) Needed (Select all that apply)</label>
-                    <div id="group-size-checkboxes" class="max-h-36 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                        <!-- Populated via JavaScript -->
+                <!-- 2-Column Side-by-Side Grid for Categories & Group Sizes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Category Tags Multi-Selection -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Categories / Tags (Select multiple)</label>
+                        <div id="category-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="warmup" class="accent-[#1e439b] rounded">
+                                <span>Warmup</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="passing" class="accent-[#1e439b] rounded">
+                                <span>Passing</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="dribbling" class="accent-[#1e439b] rounded">
+                                <span>Dribbling</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="shooting" class="accent-[#1e439b] rounded">
+                                <span>Shooting</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="possession" class="accent-[#1e439b] rounded">
+                                <span>Possession</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="defending" class="accent-[#1e439b] rounded">
+                                <span>Defending</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="fitness" class="accent-[#1e439b] rounded">
+                                <span>Fitness</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="reactions" class="accent-[#1e439b] rounded">
+                                <span>Reactions</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer p-1 hover:bg-white rounded transition">
+                                <input type="checkbox" name="custom-categories" value="other" class="accent-[#1e439b] rounded">
+                                <span>Other</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Group Size Multi-Selection -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Group Size(s) Needed</label>
+                        <div id="group-size-checkboxes" class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80 max-h-48 overflow-y-auto">
+                            <!-- Populated via JavaScript -->
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Duration (mins)</label>
-                    <input type="number" id="custom-duration" min="1" max="60" value="15" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Video Link (YouTube, Vimeo, Facebook)</label>
-                    <input type="url" id="custom-video-url" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
-                </div>
+                <!-- Equipment Section -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Equipment (comma separated)</label>
                     <input type="text" id="custom-equipment" placeholder="Cones, Balls, Pinnies, Pugg Goals" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Description</label>
-                    <textarea id="custom-description" rows="3" required placeholder="Explain setup and execution..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none"></textarea>
+
+                <!-- Description & Coaching Points Side-by-Side -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Description</label>
+                        <textarea id="custom-description" rows="3" required placeholder="Explain setup and execution..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coaching Points (one per line)</label>
+                        <textarea id="custom-points" rows="3" placeholder="Quick pass speed&#10;Body shape open" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none"></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Coaching Points (one per line)</label>
-                    <textarea id="custom-points" rows="2" placeholder="Quick pass speed&#10;Body shape open" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-[#1e439b] focus:outline-none"></textarea>
-                </div>
+
                 <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeCustomDrillModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition">Cancel</button>
-                    <button type="submit" class="bg-[#1e439b] hover:bg-blue-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">Save Drill</button>
+                    <button type="button" onclick="closeCustomDrillModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-semibold transition">Cancel</button>
+                    <button type="submit" class="bg-[#1e439b] hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm">Save Drill</button>
                 </div>
             </form>
         </div>
